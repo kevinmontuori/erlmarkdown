@@ -1079,7 +1079,7 @@ m_str1([{{inline, open}, O} | T], R, A) ->
                       [] -> [];
                       _  -> " title=\"" ++ Title ++ "\""
                   end,
-            Tag = [{tags, "<a href=\"" ++ Url ++ "\""
+            Tag = [{tags, make_href_open_tag() ++ Url ++ "\""
                     ++ Tit ++ ">"}, Acc,
                    {tags, "</a>"} | []],
             m_str1(Rest, R, [Tag | A]);
@@ -1090,7 +1090,7 @@ m_str1([{email, Addie} | T], R, A) ->
     m_str1(T, R, [{tags, "\" />"}, Addie, {tags, "<a href=\"mailto:"}| A]);
 m_str1([{url, Url} | T], R, A) ->
     m_str1(T, R, [ {tags, "</a>"}, Url, {tags, "\">"}, Url,
-                   {tags, "<a href=\""} | A]);
+                   {tags, make_href_open_tag()} | A]);
 m_str1([{tags, _} = Tag | T], R, A) ->
     m_str1(T, R, [Tag | A]);
 m_str1([{{{tag, Type}, Tag}, _} | T], R, A) ->
@@ -1282,6 +1282,14 @@ make_img_tag(Url, Acc, Title) ->
       ++ " title=\"" ++ Title ++ "\""
       ++ " />"}.
 
+make_href_open_tag() ->
+  case application:get_env(markdown, href_target, undefined) of
+    undefined -> "<a href=\"";
+    Target    -> "<a target=\"" ++ Target ++ "\" href=\""
+  end.
+
+
+
 %%%-------------------------------------------------------------------
 %%%
 %%% Unit Tests
@@ -1289,3 +1297,14 @@ make_img_tag(Url, Acc, Title) ->
 %%%-------------------------------------------------------------------
 
 -include("markdown_tests.hrl").
+href_no_target_test() ->
+  MDText = "[quux](http://example.com)",
+  ?assertEqual("<p><a href=\"http://example.com\">quux</a></p>", 
+               conv(MDText)).
+
+href_target_test() ->
+  application:set_env(markdown, href_target, "_r"),
+  MDText = "[quux](http://example.com)",
+  ?assertEqual("<p><a target=\"_r\" href=\"http://example.com\">quux</a></p>", 
+               conv(MDText)).
+
